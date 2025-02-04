@@ -226,7 +226,6 @@ global function UpdateStartInRestSetting //move
 global function NULL_PDATA
 global function Gamemode1v1_PlayerDataCallbacks //TODO: this probably shouldn't be here, but a bit of logic needs sorted into it's gamemode file (will do soonTM)
 
-const DEBUGDMG = false
 
 #if DEVELOPER
 	global function DEV_GetPlayerMetricsIndexByUID
@@ -306,10 +305,14 @@ typedef CheckFunc bool functionref( string, string  )
 typedef SerializeFunc string functionref( PlayerSettingsUpdate )
 typedef InstanceFunc PlayerSettings functionref( string, SettingsTable )
 typedef SaveSettingsFunc void functionref( string, table<string, string >, bool )
+typedef RegisterShipFunc void functionref( void functionref( string ), bool = false )
+typedef RunShipFunc void functionref( string )
 
 global struct Tracker
 {
 	array< string > settingsArr
+	array< void functionref( string ) > shipFunctions
+	table< void functionref( string ), bool > shipFunctionsWhen
 	
 	UpdateFunc 			update	
 	SyncFunc 			_updateSettingsPlayers
@@ -318,6 +321,8 @@ global struct Tracker
 	SerializeFunc 		serialize
 	InstanceFunc 		settingsInstance
 	SaveSettingsFunc	SavePlayerData
+	RegisterShipFunc	RegisterShipFunction
+	RunShipFunc			RunShipFunctions
 } 
 global Tracker tracker
 
@@ -509,6 +514,8 @@ void function __internals()
 	tracker.update					= __t_update
 	tracker._updateSettingsPlayers 	= __t_sync	
 	tracker.SavePlayerData			= __t_set
+	tracker.RegisterShipFunction	= __t_reg
+	tracker.RunShipFunctions		= __t_runship
 }
 
 PlayerSettings function __t_settings( string uid, SettingsTable settingsData )
@@ -568,6 +575,46 @@ void function __t_set( string uid, SettingsTable settingsTbl, bool sync )
 	if( sync )
 		tracker.update( tbl )
 }
+
+void function __t_reg( void functionref( string ) callbackFunc, bool bRunOnDisconnect = false )
+{
+	if( tracker.shipFunctions.contains( callbackFunc ) )
+	{
+		mAssert( false, "Tried to add callbackFunc " + string( callbackFunc ) + " but already exists in shipFunctions" )
+		return 
+	}
+	
+	if( bRunOnDisconnect )
+		tracker.shipFunctionsWhen[ callbackFunc ] <- true
+	else 
+		tracker.shipFunctionsWhen[ callbackFunc ] <- false
+		
+	tracker.shipFunctions.append( callbackFunc )
+}
+
+void function __t_runship( string uid )
+{
+	foreach( callback in tracker.shipFunctions )
+		callback( uid )
+}
+
+void function __t_runshipDisconnect( string uid )
+{
+	foreach( callback in tracker.shipFunctions )
+	{
+		if( tracker.shipFunctionsWhen[ callback ] == true )
+			callback( uid )
+	}
+}
+
+void function ShipFunction_OnDisconnected( entity player )
+{
+	if( !IsValid_ThisFrame( player ) )
+		return //should always still be valid tbh
+		
+	__t_runshipDisconnect( player.p.UID )
+}
+
 
 void function CodeCallback_BatchStatsLoaded()
 {
@@ -1118,13 +1165,13 @@ void function FireRemoteMotd( entity player )
 			if( !player.p.isConnected )
 				waitthread WaitSignalOrTimeout( player, 20, "OnConnected", "OnDestroy", "OnDisconnected" )
 			
-			if( IsValid( player ) )
+			if( IsValid( player ) && player.p.isConnected )
 			{
 				//run ui script for motd
 				Remote_CallFunction_UI( player, "UI_Callback_MOTD" )
 					wait 5
 					
-				if( IsValid( player ) )
+				if( IsValid( player ) && player.p.isConnected )
 					LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message
 			}
 		}
@@ -1547,9 +1594,16 @@ void function __DestroyStats()
 	PlayerMetricsArray = []
 	playerVerifyCounts = []
 	PlayerIdMap = {}
+	Stats__ClearOutboundCache()
 	
 	foreach( string uid, StatsTable statsTbl in Stats__GetRoundStatsTables() )
 		Stats__ResetTableByValueType( statsTbl )
+		
+	foreach( player in GetPlayerArray() )
+	{
+		int mID = InitializePlayerMetricsStructForPlayer( player )
+		__GetPlayerMetrics( mID ).ent = player
+	}
 }
 
 void function __CONTROLLED_LogInit()
@@ -1624,6 +1678,8 @@ void function PIN_Init()
 	{
 		SetServerVar( "tracker_enabled", true )
 		AddCallback_OnTdmStateEnter_InProgress( Tracker_SetStartLog )
+		AddCallback_OnClientDisconnected( ShipFunction_OnDisconnected )
+		
 		FlagInit( "START_LOG", true )
 		thread __CONTROLLED_LogInit()
 	}
@@ -1682,9 +1738,13 @@ void function PIN_Init()
 		if( bRunTracker )
 		{	
 			file.bBatchFetchInit = true
+			
 			Script_RegisterAllStats()
+			Script_RegisterAllShipFunctions()
+			
 			file.requestedStatsList = BuildRequestedStatsString()
 			file.requestedSettingsList = BuildRequestedSettingsString()
+			
 			thread INIT_BATCH_FETCH()
 		}
 		else 
@@ -2560,11 +2620,18 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 
 	void function __EndFight( entity victim, entity attacker, var damageInfo, float deathtime )
 	{
+		if( Flowstate_IsFastInstaGib() )
+			WaitEndFrame() //all data this function needs may not be wrote by it's coroutine yet.
+		
+		if( !damageInfo )
+			return
+		
 		if ( !IsValid( victim ) || ( !victim.IsPlayer() && !victim.IsNPC() ) || !IsValid( attacker ) )
 		{
 			#if DEVELOPER
 				sqerror( "returning from endfight, invalid player/attacker" )
 			#endif
+			
 			return
 		}
 		
@@ -2688,7 +2755,7 @@ void function Tracker_AddDamageEventsToDeleteQueue( int attacker_handle, int vic
 		}
 		
 		// set should ship to true
-		if ( file.bCheckShip && totalDamageToVictim >= 50 )
+		if ( file.bCheckShip && totalDamageToVictim >= 50 ) //todo: setting maxhealth / 2  (need uniform health setting set/get)
 		{
 			#if DEVELOPER
 				Warning( "Flag(bool) shouldship set" )
@@ -3295,7 +3362,7 @@ void function Tracker_HandleDamage( DamageEvent event, entity attacker, int weap
 	float currentHealth = float( victim.GetHealth() + victim.GetShieldHealth() )
 	
 	// negate damage that can't be done (no health to recieve damage)
-	if ( damageAmount > currentHealth ) 
+	if ( currentHealth > 0 && damageAmount > currentHealth ) 
 	{
 		#if DEVELOPER && DEBUGDMG
 			printt("Damageamount:", damageAmount, ";currenthealth:", currentHealth )
@@ -4115,6 +4182,8 @@ SerializedData function Tracker_BuildAllPlayerMetrics( bool trigger = false )
 			{
 				foreach ( setting, value in file.PlayerData[ UID ] )
 				{
+					value = PrepareForJson( value )
+					
 					if ( !first ) 
 					{
 						json += ", ";
@@ -4193,6 +4262,7 @@ SerializedData function __t_serial( PlayerSettingsUpdate settingsArray )
 		bool firstSetting = true
 		foreach( string setting, string value in settingsData.settings )
 		{	
+			value = PrepareForJson( value )
 			if ( !tracker.check( setting, value ) )
 				continue
 
@@ -4241,7 +4311,6 @@ void function UpdateRoundStats_GlobalsCarryOver()
 		}
 	}
 }
-
 
 void function SetIgnoreSyncFlag( entity player )
 {
@@ -4852,7 +4921,7 @@ void function FinishGameStatsRound()
 			
 			LogEvent__internal
 			(
-				format( "#|Season: %d\n|| Game ended at %d\n\n %s", Tracker_GetQueryInt( "season" ), GetUnixTimestamp(), Tracker_BuildAllPlayerMetrics(true) ),
+				format( "#|Season: %d\n|| Game ended at %d\n\n %s", Tracker_GetQueryInt( "season" ), GetUnixTimestamp(), Tracker_BuildAllPlayerMetrics( true ) ),
 				file.LogE
 			)
 
@@ -5687,13 +5756,13 @@ void function FireRemoteMotd( entity player )
 			if( !player.p.isConnected )
 				waitthread WaitSignalOrTimeout( player, 20, "OnConnected", "OnDestroy", "OnDisconnected" )
 			
-			if( IsValid( player ) )
+			if( IsValid( player ) && player.p.isConnected )
 			{
 				//run ui script for motd
 				Remote_CallFunction_UI( player, "UI_Callback_MOTD" )
 					wait 5
 					
-				if( IsValid( player ) )
+				if( IsValid( player ) && player.p.isConnected )
 					LocalMsg( player, "#FS_WELCOME", "", eMsgUI.QUICK, 10, player.p.name )//Extra welcome message //todo: move to client
 			}
 		}
