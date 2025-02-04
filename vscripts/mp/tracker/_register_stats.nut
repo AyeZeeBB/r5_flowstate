@@ -124,6 +124,14 @@ void function Script_RegisterAllStats()
 		AddCallback_PlayerDataFullyLoaded( Callback_CoreStatInit )
 	}
 	
+	//Reporting
+	if( Flowstate_EnableReporting() )
+	{	
+		Tracker_RegisterStat( "cringe_reports", null, TrackerStats_CringeReports, STORE_STAT )
+		Tracker_RegisterStat( "was_reported_cringe", null, TrackerStats_WasReportedCringe, STORE_STAT  )
+	}
+		
+	//Conditional by playlist stats
 	switch( Playlist() )
 	{
 		case ePlaylists.fs_scenarios:
@@ -169,12 +177,6 @@ void function Script_RegisterAllStats()
 			Tracker_RegisterStat( "halo_ctf_wins", null, TrackerStats_CtfWins, STORE_STAT )
 		break 
 		
-		case ePlaylists.fs_realistic_ttv:
-			Tracker_RegisterStat( "realistic_kills", null, Tracker_ReturnKills )
-			Tracker_RegisterStat( "realistic_deaths", null, Tracker_ReturnDeaths )
-			Tracker_RegisterStat( "realistic_portals", null, TrackerStats_GetPortalPlacements, STORE_STAT )
-			Tracker_RegisterStat( "realistic_kidnaps", null, TrackerStats_GetPortalKidnaps, STORE_STAT )
-		break
 		
 		//case :
 	}
@@ -293,6 +295,20 @@ var function TrackerStats_GetPortalKidnaps( string uid )
 	return ent.p.portalKidnaps
 }
 
+
+var function TrackerStats_CringeReports( string uid )
+{
+	entity ent = GetPlayerEntityByUID( uid )		
+	return ent.p.submitCringeCount
+}
+
+var function TrackerStats_WasReportedCringe( string uid )
+{
+	entity ent = GetPlayerEntityByUID( uid )
+	return ent.p.cringedCount
+}
+
+
 //////////////////////////////////////////////////////////
 //														//
 //	Any player settings that do not get registered 		//
@@ -337,6 +353,9 @@ void function Script_RegisterAllPlayerDataCallbacks()
 	}
 		
 	//func
+	
+	if( Flowstate_EnableReporting() )
+		AddCallback_PlayerData( "cringe_report_data" )
 }
 
 ///////////////////////////// QUERIES ////////////////////////////////////////////
@@ -356,4 +375,58 @@ void function Script_RegisterAllQueries()
 	//Gamemode1v1Queries_Init()
 	//etc...etc..
 }
+
+
+
+
+///////////////////////////// ON SHIP ////////////////////////////////////////////
+// RegisterShipFuction( void functionref( string uid ) callbackFunc )			//
+//																				//
+//	Registers a function that executes before building Stats/PlayerData out		//
+//	If provided with a second paramater of true, runs on player disconnect 		//
+//  Usful for performing custom operations with custom stats or cleanup/prep	//
+//////////////////////////////////////////////////////////////////////////////////
+
+void function Script_RegisterAllShipFunctions()
+{
+	if( Flowstate_EnableReporting() )
+		tracker.RegisterShipFunction( OnStatsShipped_Cringe, true )
+		
+	//more
+}
+
+
+/////////////////////////////////
+/// ON STATS SHIPPED FUNCTIONS //
+/////////////////////////////////
+
+
+void function OnStatsShipped_Cringe( string uid )
+{
+	entity ent = GetPlayerEntityByUID( uid )
+	
+	if( IsValid( ent ) && ent.p.submitCringeCount > 0 )
+	{
+		string dataAppend
+		foreach( CringeReport report in ent.p.cringeDataReports )
+		{
+			dataAppend += format
+			( 
+				"| Reported OID= %s | Reported Name= %s | Reported Reason= %s |\n", 
+				report.cringedOID,
+				report.cringedName,
+				report.reason
+			)
+		}
+		
+		string currentData = Tracker_FetchPlayerData( uid, "cringe_report_data" )
+		string newData = ( currentData + dataAppend )
+		
+		if( !empty( dataAppend ) )
+			Tracker_SavePlayerData( uid, "cringe_report_data", newData )
+	}
+}
+
+
+
 #endif //TRACKER && HAS_TRACKER_DLL

@@ -9,6 +9,7 @@ global function Stats__InternalInit
 
 global function Stats__RegisterStatOutboundData
 global function Stats__GenerateOutBoundJsonData
+global function Stats__ClearOutboundCache
 
 global function Stats__AddPlayerStatsTable
 global function Stats__GetPlayerStatsTable
@@ -42,6 +43,7 @@ struct
 {
 	table< UIDString, StatsTable > onlineStatsTables
 	table< UIDString, StatsTable > localStatsTables //populated on disconnect.
+	table< UIDString, string > generatedOutBoundJsonData
 	array< string > statKeys
 	
 	table< string, var functionref( string UID ) > registeredStatOutboundValues
@@ -264,6 +266,17 @@ array<string> function GenerateOutBoundDataList()
 
 string function Stats__GenerateOutBoundJsonData( string UID )
 {
+	if( empty( UID ) )
+	{
+		mAssert( false, "empty UID passed to " + FUNC_NAME() )
+		return ""
+	}
+	
+	if( ( UID in file.generatedOutBoundJsonData ) && !empty( file.generatedOutBoundJsonData[ UID ] ) )
+		return file.generatedOutBoundJsonData[ UID ]
+			
+	tracker.RunShipFunctions( UID )
+	
 	string json = "";
 	array<string> validOutBoundStats = GenerateOutBoundDataList()
 	
@@ -311,7 +324,13 @@ string function Stats__GenerateOutBoundJsonData( string UID )
 		}
 	}
 	
+	file.generatedOutBoundJsonData[ UID ] <- json
 	return json
+}
+
+void function Stats__ClearOutboundCache()
+{
+	file.generatedOutBoundJsonData = {} //reassign reference
 }
 
 void function Stats__RegisterStatOutboundData( string statname, var functionref( string UID ) func )

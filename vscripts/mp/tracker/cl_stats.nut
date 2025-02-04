@@ -13,7 +13,6 @@ global function Tracker_StatExists
 global const float MAX_PRELOAD_TIMEOUT = 0.35
 
 typedef EntityStatStruct table < entity, table < string, var > >
-const bool DEBUG_CL_STATS = false
 const float MAX_FETCH_TIMEOUT = 5.0
 
 struct StatData
@@ -48,7 +47,7 @@ struct
 // Use Tracker_IsStatsReadyFor( player ) to get a bool of the status for that player.
 
 void function Tracker_ClientStats_Init()
-{		
+{
 	RegisterSignal( "StatDataReceived" )
 	RegisterSignal( "RequestStatFailed" )
 	RegisterSignal( "PreloadStat" )

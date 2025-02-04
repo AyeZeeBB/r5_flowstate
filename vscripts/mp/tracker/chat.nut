@@ -62,6 +62,7 @@ typedef OffenceTiers array< int >
 const string YES = "1"
 const bool PRINT_TIME_STRING_ARGS = false
 
+
 struct 
 {
 	table< string, int > mutedPlayers //uid -> unix unmute time	
@@ -98,6 +99,9 @@ void function RegisterAllChatCommands() //if chat commands enabled.
 	Commands_Register( "!id", cmd_id, [ "/id", "\\id" ] )
 	Commands_Register( "!aa", cmd_aa, [ "/aa", "\\aa" ] )
 	Commands_Register( "!inputs", cmd_inputs, [ "/inputs", "\\inputs" ] )
+	
+	if( Flowstate_EnableReporting() )
+		Commands_Register( "!cringe", cmd_cringe, ["/cringe", "\\cringe", "!report", "/report", "\\report" ] )
 	
 	//game varient
 	switch( Playlist() )
@@ -136,6 +140,51 @@ void function RegisterAllChatCommands() //if chat commands enabled.
 ///////////////////////////////
 /// Define Command Handlers //////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////
+
+const MAX_REPORTS_ALLOWED_PER_MAP = 5 
+void function cmd_cringe( string tag, array<string> args, entity activator )
+{
+	activator.p.submitCringeCount++	
+	
+	if( activator.p.submitCringeCount >= MAX_REPORTS_ALLOWED_PER_MAP )
+	{
+		Message( activator, "Too many reports", "Please limit reports per match to as needed." )
+		return
+	}
+	
+	entity previousPlayer = activator.p.lastOpponent	
+	if( IsValid( previousPlayer ) ) // && ( previousPlayer.p.lastOpponent == activator ) ) //we may want to omit opposition check ( the && expression #2), could be an exploit where enemy quickly finishes next player during the /cringe, and by this time the check would fail if opposition was fast enough in their next fight.
+	{
+		string argReason
+		if( args.len() > 1 )
+		{
+			args.remove( 0 ) //the command "cringe" 
+			argReason = args.join( " " ) //the rest of the string after the command
+			
+			string regex = "^[A-Za-z0-9_ \\[\\]\\(\\):;,\\'\\\"*&^%$#@!+=?.|]*$"
+			if( !IsSafeString( argReason, 255, regex ) )
+			{
+				printt( "Unsafe reason string by: ", activator )
+				argReason = "emptied"
+			}
+		}
+		
+		CringeReport cringe
+		cringe.cringedOID = previousPlayer.p.UID
+		cringe.cringedName = previousPlayer.p.name 
+		cringe.reason = argReason
+
+		previousPlayer.p.cringedCount++
+		activator.p.cringeDataReports.append( cringe )
+		
+		Message( activator, "Thanks, Report Receieved", "We receieved your report as: \n\n" + argReason )
+	}
+	else 
+	{
+		Message( activator, "Opponent Left" )
+	}
+}
+
 
 void function cmd_wait( string tag, array<string> args, entity activator )
 {
