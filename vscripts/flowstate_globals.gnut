@@ -97,6 +97,7 @@ struct
 	bool FlowState_RestMsg
 	float Flowstate_itemDissolveTime
 	bool Flowstate_CycleHaloPlaylists
+	bool Flowstate_EnableReporting
 	
 } SH_flowstateSettings
 
@@ -197,6 +198,7 @@ void function Initialize_SH_FlowstateSettings()
 	SH_flowstateSettings.FlowState_RestMsg 								= GetCurrentPlaylistVarBool( "rest_msg", false )
 	SH_flowstateSettings.Flowstate_itemDissolveTime						= GetCurrentPlaylistVarFloat( "dissolve_drops_time", 7 )
 	SH_flowstateSettings.Flowstate_CycleHaloPlaylists					= GetCurrentPlaylistVarBool( "cycle_halo_playlists", false )
+	SH_flowstateSettings.Flowstate_EnableReporting						= GetCurrentPlaylistVarBool( "enable_reporting", false )
 }
 
 // Playlist GET
@@ -293,6 +295,7 @@ bool function FlowState_GiveTactical()							{ return SH_flowstateSettings.FlowS
 bool function FlowState_RestMsg()								{ return SH_flowstateSettings.FlowState_RestMsg }
 float function Flowstate_GetDissolveTime()						{ return SH_flowstateSettings.Flowstate_itemDissolveTime }
 bool function Flowstate_CycleHaloPlaylists()					{ return SH_flowstateSettings.Flowstate_CycleHaloPlaylists } //used in ctf/tdm
+bool function Flowstate_EnableReporting()							{ return SH_flowstateSettings.Flowstate_EnableReporting }
 
 void function DEV_RegisterNetworking_SpawnSystem()
 {
