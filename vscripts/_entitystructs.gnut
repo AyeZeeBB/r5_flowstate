@@ -545,6 +545,13 @@ global struct DropWeaponData
 	int 		  skinItemFlavorGUID  = -1
 }
 
+global struct CringeReport
+{
+	string cringedOID
+	string cringedName
+	string reason
+}
+
 // This struct is hooked up to entity.p in code
 global struct ServerPlayerStruct
 {
@@ -1188,6 +1195,12 @@ global struct ServerPlayerStruct
 	
 	bool didSkipLastKillreplay = true
 	bool cloakedForever = false
+	
+	//custom new 
+	entity lastOpponent
+	int submitCringeCount
+	int cringedCount
+	array< CringeReport > cringeDataReports
 }
 
 global struct ChallengeScore
@@ -1487,4 +1500,4 @@ global struct ServerFirstPersonProxyStruct
 {
 	entity battery
 }
-	
+
