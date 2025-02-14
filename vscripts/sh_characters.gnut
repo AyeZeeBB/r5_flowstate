@@ -23,6 +23,7 @@ global function CharacterClass_GetCharacterSelectSubtitle
 global function CharacterClass_GetReadyUpVoicelineEventList
 global function CharacterClass_IsAvailable
 global function CharacterClass_GetDamageScale
+global function CharacterClass_GetRoleColor
 
 #if SERVER
 global function GetStringArrayAvailableClassesForPlayer
@@ -33,6 +34,7 @@ global function CharacterClass_GetMenuZoomOffset
 #if CLIENT || UI 
 global function GetCharacterButtonMapping
 global function GetCharacterButtonOrder
+global function GetCharactersByRole
 #endif
 
 #if SERVER || CLIENT
@@ -52,20 +54,84 @@ global enum eCharacterClassRole
 // the order of this enum decides the order of the groups in the UI
 {
 	UNDECIDED,
-	OFFENSE,
+	OFFENSE,         
+	RECON,
 	DEFENSE,
 	SUPPORT,
-	RECON,
 	_COUNT,
 }
 
 const table<int, asset> CHARACTER_ROLE_ICONS = {
 	[eCharacterClassRole.UNDECIDED] = $"",
-	[eCharacterClassRole.OFFENSE] = $"rui/menu/character_select/utility/util_role_offense",
-	[eCharacterClassRole.DEFENSE] = $"rui/menu/character_select/utility/util_role_defense",
-	[eCharacterClassRole.SUPPORT] = $"rui/menu/character_select/utility/util_role_support",
-	[eCharacterClassRole.RECON] = $"rui/menu/character_select/utility/util_role_recon",
-	//	[eCharacterClassRole.BUILDER] = $"rui/menu/character_select/utility/util_role_builder",
+	[eCharacterClassRole.OFFENSE]   = $"rui/menu/character_select/utility/util_role_offense",
+	[eCharacterClassRole.DEFENSE]   = $"rui/menu/character_select/utility/util_role_defense",
+	[eCharacterClassRole.SUPPORT]   = $"rui/menu/character_select/utility/util_role_support",
+	[eCharacterClassRole.RECON]     = $"rui/menu/character_select/utility/util_role_recon",
+}
+
+                   
+const table<int, asset> CHARACTER_ROLE_ICONS_NEW = {
+	[eCharacterClassRole.UNDECIDED]		= $"",
+	[eCharacterClassRole.OFFENSE]   	= $"rui/menu/character_select/utility/role_offense",
+	[eCharacterClassRole.DEFENSE]   	= $"rui/menu/character_select/utility/role_defense",
+	[eCharacterClassRole.SUPPORT]   	= $"rui/menu/character_select/utility/role_support",
+	[eCharacterClassRole.RECON]     	= $"rui/menu/character_select/utility/role_recon",
+}
+
+const table<int, string> CHARACTER_ROLE_DESCRIPTIONS = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#CARE_PACKAGE_INSIGHT_PERK_DESC",
+	[eCharacterClassRole.DEFENSE]    = "#BEACON_CIRCLE_SCAN_PERK_DESC",
+	[eCharacterClassRole.SUPPORT]    = "#EXTRA_BIN_LOOT_PERK_DESC",
+	[eCharacterClassRole.RECON]      = "#BEACON_ENEMY_SCAN_PERK_DESC",
+}
+
+const table<int, string> CHARACTER_ROLE_SHORT_DESC_1 = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#ROLE_ASSAULT_SHORT_DESC_1",
+	[eCharacterClassRole.DEFENSE]    = "#ROLE_CONTROLLER_SHORT_DESC_1",
+	[eCharacterClassRole.SUPPORT]    = "#ROLE_SUPPORT_SHORT_DESC_1",
+	[eCharacterClassRole.RECON]      = "#ROLE_RECON_SHORT_DESC_1",
+}
+
+const table<int, string> CHARACTER_ROLE_SHORT_DESC_2 = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#ROLE_ASSAULT_SHORT_DESC_2",
+	[eCharacterClassRole.DEFENSE]    = "#ROLE_CONTROLLER_SHORT_DESC_2",
+	[eCharacterClassRole.SUPPORT]    = "#ROLE_SUPPORT_SHORT_DESC_2",
+	[eCharacterClassRole.RECON]      = "#ROLE_RECON_SHORT_DESC_2",
+}
+
+const table<int, string> CHARACTER_ROLE_SHORT_DESC_3 = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#ROLE_ASSAULT_SHORT_DESC_3",
+	[eCharacterClassRole.DEFENSE]    = "#ROLE_CONTROLLER_SHORT_DESC_3",
+	[eCharacterClassRole.SUPPORT]    = "#ROLE_SUPPORT_SHORT_DESC_3",
+	[eCharacterClassRole.RECON]      = "#ROLE_RECON_SHORT_DESC_3",
+}
+
+const table<int, string> CHARACTER_ROLE_TITLES = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#ROLE_ASSAULT",
+	[eCharacterClassRole.DEFENSE]    = "#ROLE_CONTROLLER",
+	[eCharacterClassRole.SUPPORT]    = "#ROLE_SUPPORT",
+	[eCharacterClassRole.RECON]      = "#ROLE_RECON",
+}
+
+const table<int, string> CHARACTER_ROLE_SUBTITLES = {
+	[eCharacterClassRole.UNDECIDED]  = "",
+	[eCharacterClassRole.OFFENSE]    = "#ROLE_ASSAULT_SUBTITLE",
+	[eCharacterClassRole.DEFENSE]    = "#ROLE_CONTROLLER_SUBTITLE",
+	[eCharacterClassRole.SUPPORT]    = "#ROLE_SUPPORT_SUBTITLE",
+	[eCharacterClassRole.RECON]      = "#ROLE_RECON_SUBTITLE",
+}
+
+const table<int, vector> CHARACTER_ROLE_COLORS = {
+	[eCharacterClassRole.UNDECIDED]  = <0,0,0>,
+	[eCharacterClassRole.OFFENSE]    = < 0.95, 0.52, 0.007 >,
+	[eCharacterClassRole.DEFENSE]    = < 0.27, 0.54, 0.73 >,
+	[eCharacterClassRole.SUPPORT]    = < 0.36, 0.68, 0.28 >,
+	[eCharacterClassRole.RECON]      = < 0.82, 0.4, 0.95 >,
 }
 
 global struct CharacterMenuLightData
@@ -251,6 +317,11 @@ int function CharacterClass_GetRole( ItemFlavor flavor )
 	Assert( ItemFlavor_GetType( flavor ) == eItemType.character )
 
 	return eCharacterClassRole[GetGlobalSettingsString( ItemFlavor_GetAsset( flavor ), "role" )]
+}
+
+vector function CharacterClass_GetRoleColor( int role )
+{
+	return CHARACTER_ROLE_COLORS[role]
 }
 
 
@@ -503,6 +574,19 @@ array<ItemFlavor> function GetCharacterButtonOrder( array<ItemFlavor> allCharact
 	sortedCharacters.sort( SortByMenuButtonIndex )
 
 	return sortedCharacters
+}
+
+array<ItemFlavor> function GetCharactersByRole( array<ItemFlavor> allCharacters, int role )
+{
+	array<ItemFlavor> toReturn
+
+	foreach ( character in allCharacters )
+	{
+		if (CharacterClass_GetRole( character ) == role)
+			toReturn.append(character)
+	}
+
+	return toReturn
 }
 
 int function SortByMenuButtonIndex( ItemFlavor a, ItemFlavor b )

@@ -5,19 +5,56 @@ const int MAX_COLUMNS = 5
 
 struct
 {
-	var                    panel
-	var                    characterSelectInfoRui
-	array<var>             buttons
-	table<var, ItemFlavor> buttonToCharacter
-	ItemFlavor ornull	   presentedCharacter
-	//var                    actionButton
+	var                    	panel
+	var                    	characterSelectInfoRui
+	var					   	lobbyClassPerkInfoRui
+	array<var>             	buttons
+	var						topLegendRowAnchor
+	var						botLegendRowAnchor
+	var		   				assaultShelf
+	var		   				reconShelf
+	var		   				supportShelf
+	var		   				controllerShelf
+	var		   				assaultShelfRUI
+	var		   				reconShelfRUI
+	var		   				supportShelfRUI
+	var		   				controllerShelfRUI
+	array<var>             	roleButtons_Assault
+	array<var>             	roleButtons_Recon
+	array<var>             	roleButtons_Defense
+	array<var>             	roleButtons_Support
+	table<var, ItemFlavor> 	buttonToCharacter
+	ItemFlavor ornull	   	presentedCharacter
+	int						filterTabIndex
 	var					   actionLabel
 } file
 
 void function InitCharactersPanel( var panel )
 {
 	file.panel = panel
+
+	//file.characterSelectInfoRui = Hud_GetRui( Hud_GetChild( file.panel, "LobbyClassLegendInfo" ) )
 	file.characterSelectInfoRui = Hud_GetRui( Hud_GetChild( file.panel, "CharacterSelectInfo" ) )
+	file.lobbyClassPerkInfoRui = Hud_GetRui( Hud_GetChild( file.panel, "LobbyClassPerkInfo" ) )
+	//file.assaultShelfRUI = Hud_GetRui(Hud_GetChild( file.panel, "assaultShelf" ))
+	//file.reconShelfRUI = Hud_GetRui(Hud_GetChild( file.panel, "reconShelf" ))
+	//file.supportShelfRUI = Hud_GetRui(Hud_GetChild( file.panel, "supportShelf" ))
+	//file.controllerShelfRUI = Hud_GetRui(Hud_GetChild( file.panel, "controllerShelf" ))
+     
+                                                                                              
+      
+	file.buttons = GetPanelElementsByClassname( panel, "CharacterButtonClass" )
+	file.roleButtons_Assault = GetPanelElementsByClassname( panel, "AssaultCharacterRoleButtonClass" )
+	file.roleButtons_Recon = GetPanelElementsByClassname( panel, "ReconCharacterRoleButtonClass" )
+	file.roleButtons_Defense = GetPanelElementsByClassname( panel, "DefenseCharacterRoleButtonClass" )
+	file.roleButtons_Support = GetPanelElementsByClassname( panel, "SupportCharacterRoleButtonClass" )
+	file.topLegendRowAnchor = Hud_GetChild( panel, "Top_List_Anchor" )
+	file.botLegendRowAnchor = Hud_GetChild( panel, "Bot_List_Anchor" )
+	file.assaultShelf = Hud_GetChild( file.panel, "assaultShelf" )
+	file.reconShelf = Hud_GetChild( file.panel, "reconShelf" )
+	file.supportShelf = Hud_GetChild( file.panel, "supportShelf" )
+	file.controllerShelf = Hud_GetChild( file.panel, "controllerShelf" )
+
 	file.buttons = GetPanelElementsByClassname( panel, "CharacterButtonClass" )
 
 	SetPanelTabTitle( panel, "#LEGENDS" )
@@ -30,19 +67,42 @@ void function InitCharactersPanel( var panel )
 		Hud_AddEventHandler( button, UIE_CLICK, CharacterButton_OnActivate )
 		Hud_AddEventHandler( button, UIE_CLICKRIGHT, CharacterButton_OnRightClick )
 		Hud_AddEventHandler( button, UIE_MIDDLECLICK, CharacterButton_OnMiddleClick )
-		//
-		//ToolTipData toolTipData
-		//toolTipData.tooltipStyle = eTooltipStyle.BUTTON_PROMPT
-		//toolTipData.actionHint1 = "#X_BUTTON_TOGGLE_LOADOUT"
-		//Hud_SetToolTipData( button, toolTipData )
+	}
+
+	foreach ( button in file.roleButtons_Assault )
+	{
+		Hud_AddEventHandler( button, UIE_CLICK, CharacterButton_OnActivate )
+		Hud_AddEventHandler( button, UIE_CLICKRIGHT, CharacterButton_OnRightClick )
+		Hud_AddEventHandler( button, UIE_MIDDLECLICK, CharacterButton_OnMiddleClick )
+	}
+
+	foreach ( button in file.roleButtons_Recon )
+	{
+		Hud_AddEventHandler( button, UIE_CLICK, CharacterButton_OnActivate )
+		Hud_AddEventHandler( button, UIE_CLICKRIGHT, CharacterButton_OnRightClick )
+		Hud_AddEventHandler( button, UIE_MIDDLECLICK, CharacterButton_OnMiddleClick )
+	}
+
+	foreach ( button in file.roleButtons_Defense )
+	{
+		Hud_AddEventHandler( button, UIE_CLICK, CharacterButton_OnActivate )
+		Hud_AddEventHandler( button, UIE_CLICKRIGHT, CharacterButton_OnRightClick )
+		Hud_AddEventHandler( button, UIE_MIDDLECLICK, CharacterButton_OnMiddleClick )
+	}
+
+	foreach ( button in file.roleButtons_Support )
+	{
+		Hud_AddEventHandler( button, UIE_CLICK, CharacterButton_OnActivate )
+		Hud_AddEventHandler( button, UIE_CLICKRIGHT, CharacterButton_OnRightClick )
+		Hud_AddEventHandler( button, UIE_MIDDLECLICK, CharacterButton_OnMiddleClick )
 	}
 
 	AddPanelFooterOption( panel, LEFT, BUTTON_B, true, "#B_BUTTON_BACK", "#B_BUTTON_BACK" )
+	//AddPanelFooterOption( panel, LEFT, BUTTON_Y, true, "#BUTTON_MARK_ALL_AS_SEEN_GAMEPAD", "#BUTTON_MARK_ALL_AS_SEEN_MOUSE", MarkAllCharacterItemsAsViewed, CharacterButtonNotFocused )
 	AddPanelFooterOption( panel, LEFT, BUTTON_A, false, "#A_BUTTON_SELECT", "", null, IsCharacterButtonFocused )
-	//AddPanelFooterOption( panel, LEFT, BUTTON_X, false, "#X_BUTTON_TOGGLE_LOADOUT", "#X_BUTTON_TOGGLE_LOADOUT", OpenFocusedCharacterSkillsDialog, IsCharacterButtonFocused )
-	AddPanelFooterOption( panel, LEFT, BUTTON_Y, false, "#Y_BUTTON_UNLOCK", "#Y_BUTTON_UNLOCK", JumpToStoreCharacterFromFocus, IsReadyAndFocusedCharacterLocked )
-	AddPanelFooterOption( panel, LEFT, BUTTON_Y, false, "#Y_BUTTON_SET_FEATURED", "#Y_BUTTON_SET_FEATURED", SetFeaturedCharacterFromFocus, IsReadyAndNonfeaturedCharacterButtonFocused )
-	//AddPanelFooterOption( panel, LEFT, MOUSE_RIGHT, false, "", "#X_BUTTON_TOGGLE_LOADOUT", ToggleCharacterDetails ) // mouse
+	AddPanelFooterOption( panel, LEFT, BUTTON_X, false, "#X_BUTTON_TOGGLE_LOADOUT", "#X_BUTTON_TOGGLE_LOADOUT", OpenFocusedCharacterSkillsDialog, IsCharacterButtonFocused )
+	//AddPanelFooterOption( panel, RIGHT, BUTTON_Y, false, "#Y_BUTTON_UNLOCK", "#Y_BUTTON_UNLOCK", OpenPurchaseCharacterDialogFromFocus, IsReadyAndFocusedCharacterLocked )
+	AddPanelFooterOption( panel, RIGHT, BUTTON_Y, false, "#Y_BUTTON_SET_FEATURED", "#Y_BUTTON_SET_FEATURED", SetFeaturedCharacterFromFocus, IsReadyAndNonfeaturedCharacterButtonFocused )
 
 	//file.actionButton = Hud_GetChild( panel, "ActionButton" )
 	//HudElem_SetRuiArg( file.actionButton, "bigText", "" )
@@ -53,6 +113,11 @@ void function InitCharactersPanel( var panel )
 
 	file.actionLabel = Hud_GetChild( panel, "ActionLabel" )
 	Hud_SetText( file.actionLabel, "#X_BUTTON_TOGGLE_LOADOUT" )
+}
+
+bool function CharacterButtonNotFocused()
+{
+	return !IsCharacterButtonFocused()
 }
 
 
@@ -153,50 +218,232 @@ void function InitCharacterButtons()
 {
 	file.buttonToCharacter.clear()
 
+	foreach ( button in file.buttons )
+	{
+		Hud_SetVisible( button, false )
+		Hud_ReturnToBaseScaleOverTime( button, 0.0, INTERPOLATOR_DEACCEL )
+	}
+
+	foreach ( button in file.roleButtons_Assault )
+	{
+		Hud_SetVisible( button, false )
+		Hud_ReturnToBaseScaleOverTime( button, 0.0, INTERPOLATOR_DEACCEL )
+	}
+
+	foreach ( button in file.roleButtons_Recon )
+	{
+		Hud_SetVisible( button, false )
+		Hud_ReturnToBaseScaleOverTime( button, 0.0, INTERPOLATOR_DEACCEL )
+	}
+
+	foreach ( button in file.roleButtons_Defense )
+	{
+		Hud_SetVisible( button, false )
+		Hud_ReturnToBaseScaleOverTime( button, 0.0, INTERPOLATOR_DEACCEL )
+	}
+
+	foreach ( button in file.roleButtons_Support )
+	{
+		Hud_SetVisible( button, false )
+		Hud_ReturnToBaseScaleOverTime( button, 0.0, INTERPOLATOR_DEACCEL )
+	}
+
 	array<ItemFlavor> characters
 	foreach ( ItemFlavor itemFlav in GetAllCharacters() )
 	{
 		bool isAvailable = IsItemFlavorUnlockedForLoadoutSlot( LocalClientEHI(), Loadout_CharacterClass(), itemFlav )
 		if ( !isAvailable )
 		{
-			if ( !ItemFlavor_ShouldBeVisible( itemFlav, GetUIPlayer() ) )
+			if ( !ItemFlavor_ShouldBeVisible( itemFlav, GetLocalClientPlayer() ) )
 				continue
 		}
 
 		characters.append( itemFlav )
 	}
 
-	foreach ( button in file.buttons )
-		Hud_SetVisible( button, false )
-
 	array<ItemFlavor> orderedCharacters = GetCharacterButtonOrder( characters, file.buttons.len() )
-	int buttonIndex = 0
-	foreach ( character in orderedCharacters )
+	array<var> characterButtons
+
+                   
+	int listGap = 90
+	int buttonGap = 6
+	int buttonWidth = 117
+
+	UISize screenSize = GetScreenSize()
+
+	float screenSizeXFrac =  screenSize.width / 1920.0
+	float screenSizeYFrac =  screenSize.height / 1080.0
+
+	float scaleFrac = min(screenSizeXFrac, screenSizeYFrac)
+
+	int assaultLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.OFFENSE ).len()
+	int reconLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.RECON ).len()
+	int supportLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.SUPPORT ).len()
+	int defenderLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.DEFENSE ).len()
+
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.OFFENSE ) )
 	{
-		var button = file.buttons[ buttonIndex ]
-		CharacterButton_Init( button, character )
-		Hud_SetVisible( button, true )
-		buttonIndex++
+		var button = file.roleButtons_Assault[index]
+		CharacterClassButton_Init( button, character )
+		int offset = (buttonWidth * index) + (buttonGap * index)
+		Hud_SetX( button, offset * scaleFrac)
 	}
 
-	array<int> rowSizes = GetCharacterButtonRowSizes( characters.len() )
-	array< array<var> > buttonRows
+	int topListOffset1 = (assaultLegendsAmount * buttonWidth) + ( (assaultLegendsAmount - 1) * buttonGap) + listGap
 
-	buttonIndex = 0
-	foreach ( rowSize in rowSizes )
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.RECON ) )
 	{
-		array<var> buttons
-		int last = buttonIndex + rowSize
-
-		while ( buttonIndex < last )
-		{
-			buttons.append( file.buttons[buttonIndex] )
-			buttonIndex++
-		}
-
-		buttonRows.append( buttons )
+		var button = file.roleButtons_Recon[index]
+		CharacterClassButton_Init( button, character )
+		int offset = topListOffset1 + (buttonWidth * index) + (buttonGap * index)
+		Hud_SetX( button, offset * scaleFrac)
 	}
-	LayoutCharacterButtons( buttonRows )
+
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.SUPPORT ) )
+	{
+		var button = file.roleButtons_Support[index]
+		CharacterClassButton_Init( button, character )
+		int offset = (buttonWidth * index) + (buttonGap * index)
+		Hud_SetX( button, offset * scaleFrac)
+	}
+
+	int botListOffset1 = (supportLegendsAmount * buttonWidth) + ( (supportLegendsAmount - 1) * buttonGap) + listGap
+
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.DEFENSE ) )
+	{
+		var button = file.roleButtons_Defense[index]
+		CharacterClassButton_Init( button, character )
+		int offset = botListOffset1 + (buttonWidth * index) + (buttonGap * index)
+		Hud_SetX( button, offset * scaleFrac)
+	}
+
+	int topListFullWidth = (assaultLegendsAmount * buttonWidth) + ( (assaultLegendsAmount - 1) * buttonGap) + listGap + (reconLegendsAmount * buttonWidth) + ( (reconLegendsAmount - 1) * buttonGap)
+	int botListFullWidth = botListOffset1 + (defenderLegendsAmount * buttonWidth) + ( (defenderLegendsAmount - 1) * buttonGap)
+
+	Hud_SetX( file.topLegendRowAnchor, -(topListFullWidth/2) * scaleFrac)
+	Hud_SetX( file.botLegendRowAnchor, -(botListFullWidth/2) * scaleFrac)
+
+	//RuiSetFloat( file.assaultShelfRUI, "shelfWidth", float((assaultLegendsAmount * buttonWidth) + ( (assaultLegendsAmount - 1) * buttonGap)))
+	//RuiSetColorAlpha( file.assaultShelfRUI, "shelfColor", SrgbToLinear(CharacterClass_GetRoleColor(1)), 1.0)
+	//RuiSetString( file.assaultShelfRUI, "roleString", "#ROLE_ASSAULT" )
+	//RuiSetImage( file.assaultShelfRUI, "roleIcon", $"rui/menu/character_select/utility/role_offense" )
+
+	//RuiSetFloat( file.reconShelfRUI, "shelfWidth", float((reconLegendsAmount * buttonWidth) + ( (reconLegendsAmount - 1) * buttonGap)))
+	//RuiSetColorAlpha( file.reconShelfRUI, "shelfColor", SrgbToLinear(CharacterClass_GetRoleColor(3)), 1.0)
+	//RuiSetString( file.reconShelfRUI, "roleString", "#ROLE_RECON" )
+	//RuiSetImage( file.reconShelfRUI, "roleIcon", $"rui/menu/character_select/utility/role_recon" )
+
+	//RuiSetFloat( file.supportShelfRUI, "shelfWidth", float((supportLegendsAmount * buttonWidth) + ( (supportLegendsAmount - 1) * buttonGap)))
+	//RuiSetColorAlpha( file.supportShelfRUI, "shelfColor", SrgbToLinear(CharacterClass_GetRoleColor(5)), 1.0)
+	//RuiSetString( file.supportShelfRUI, "roleString", "#ROLE_SUPPORT" )
+	//RuiSetImage( file.supportShelfRUI, "roleIcon", $"rui/menu/character_select/utility/role_support" )
+
+	//RuiSetFloat( file.controllerShelfRUI, "shelfWidth", float((defenderLegendsAmount * buttonWidth) + ( (defenderLegendsAmount - 1) * buttonGap)))
+	//RuiSetColorAlpha( file.controllerShelfRUI, "shelfColor", SrgbToLinear(CharacterClass_GetRoleColor(4)), 1.0)
+	//RuiSetString( file.controllerShelfRUI, "roleString", "#ROLE_CONTROLLER" )
+	//RuiSetImage( file.controllerShelfRUI, "roleIcon", $"rui/menu/character_select/utility/role_defense" )
+
+	Hud_SetX( file.assaultShelf, (-buttonWidth/2) * scaleFrac)
+	Hud_SetX( file.reconShelf, (-buttonWidth/2) * scaleFrac)
+	Hud_SetX( file.supportShelf, (botListOffset1 -buttonWidth/2) * scaleFrac)
+	Hud_SetX( file.controllerShelf, (botListOffset1 -buttonWidth/2) * scaleFrac)
+
+	SetPerkLayoutNav ( orderedCharacters )
+}
+
+void function SetPerkLayoutNav (array<ItemFlavor> orderedCharacters)
+{
+	int assaultLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.OFFENSE ).len()
+	int reconLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.RECON ).len()
+	int supportLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.SUPPORT ).len()
+	int defenderLegendsAmount = GetCharactersByRole( orderedCharacters, eCharacterClassRole.DEFENSE ).len()
+	                                   
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.OFFENSE ) )
+	{
+		var button = file.roleButtons_Assault[index]
+
+		            
+		if (index < assaultLegendsAmount -1)
+			Hud_SetNavRight(button, file.roleButtons_Assault[index + 1])
+		else
+			Hud_SetNavRight(button, file.roleButtons_Recon[0])
+
+		           
+		if (index != 0)
+			Hud_SetNavLeft(button, file.roleButtons_Assault[index - 1])
+
+		          
+		if ( index <= supportLegendsAmount - 1 )
+			Hud_SetNavDown(button, file.roleButtons_Support[0])
+		else
+			Hud_SetNavDown(button, file.roleButtons_Defense[0])
+	}
+
+	                                      
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.RECON ) )
+	{
+		var button = file.roleButtons_Recon[index]
+
+		            
+		if (index < reconLegendsAmount -1)
+			Hud_SetNavRight(button, file.roleButtons_Recon[index + 1])
+
+		           
+		if (index != 0)
+			Hud_SetNavLeft(button, file.roleButtons_Recon[index - 1])
+		else
+			Hud_SetNavLeft(button, file.roleButtons_Assault[assaultLegendsAmount -1])
+
+		          
+		if ( index >= reconLegendsAmount - defenderLegendsAmount )
+			Hud_SetNavDown(button, file.roleButtons_Defense[0])
+		else
+			Hud_SetNavDown(button, file.roleButtons_Support[supportLegendsAmount - 1])
+	}
+
+	                                   
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.SUPPORT ) )
+	{
+		var button = file.roleButtons_Support[index]
+		        
+		if (index <= (supportLegendsAmount-1)/2)
+			Hud_SetNavUp(button, file.roleButtons_Assault[assaultLegendsAmount -1])
+		else
+			Hud_SetNavUp(button, file.roleButtons_Assault[0])
+
+		            
+		if (index < supportLegendsAmount -1)
+			Hud_SetNavRight(button, file.roleButtons_Support[index + 1])
+		else
+			Hud_SetNavRight(button, file.roleButtons_Defense[0])
+
+		           
+		if (index != 0)
+			Hud_SetNavLeft(button, file.roleButtons_Support[index - 1])
+		else
+			Hud_SetNavLeft(button, file.roleButtons_Recon[reconLegendsAmount -1])
+	}
+
+	                                     
+	foreach ( index, character in GetCharactersByRole( orderedCharacters, eCharacterClassRole.DEFENSE ) )
+	{
+		var button = file.roleButtons_Defense[index]
+		         
+		if (defenderLegendsAmount <= reconLegendsAmount)
+			Hud_SetNavUp(button, file.roleButtons_Recon[reconLegendsAmount - 1])
+		else
+			Hud_SetNavUp(button, file.roleButtons_Recon[0])
+
+		            
+		if (index < defenderLegendsAmount -1)
+			Hud_SetNavRight(button, file.roleButtons_Defense[index + 1])
+
+		           
+		if (index != 0)
+			Hud_SetNavLeft(button, file.roleButtons_Defense[index - 1])
+		else
+			Hud_SetNavLeft(button, file.roleButtons_Support[supportLegendsAmount -1])
+	}
 }
 
 
@@ -204,23 +451,42 @@ void function CharacterButton_Init( var button, ItemFlavor character )
 {
 	file.buttonToCharacter[button] <- character
 
-	//bool isNew = (Newness_ReverseQuery_GetNewCount( NEWNESS_QUERIES.CharacterButton[character] ) > 0)
-	// todo(jpg): make new and locked mutually exclusive
 	bool isLocked   = IsItemFlavorUnlockedForLoadoutSlot( LocalClientEHI(), Loadout_CharacterClass(), character )
 	bool isSelected = LoadoutSlot_GetItemFlavor( LocalClientEHI(), Loadout_CharacterClass() ) == character
 
 	Hud_SetVisible( button, true )
-	//Hud_SetNew( button, isNew )
 	Hud_SetLocked( button, !IsItemFlavorUnlockedForLoadoutSlot( LocalClientEHI(), Loadout_CharacterClass(), character ) )
 	Hud_SetSelected( button, isSelected )
 
+	RuiSetColorAlpha( Hud_GetRui( button ), "seasonColor", SrgbToLinear( <1.0, 1.0, 1.0> ), 1.0 )
 	RuiSetString( Hud_GetRui( button ), "buttonText", Localize( ItemFlavor_GetLongName( character ) ).toupper() )
-	RuiSetImage( Hud_GetRui( button ), "buttonImage", CharacterClass_GetGalleryPortrait( character ) )
+	RuiSetImage( Hud_GetRui( button ), "buttonImage", CharacterClass_GetGalleryPortraitBackground( character ) )
 	RuiSetImage( Hud_GetRui( button ), "bgImage", CharacterClass_GetGalleryPortraitBackground( character ) )
 	RuiSetImage( Hud_GetRui( button ), "roleImage", CharacterClass_GetCharacterRoleImage( character ) )
-	//RuiSetInt( Hud_GetRui( button ), "characterLevel", GetCharacterLevel( character ) )
 
 	Newness_AddCallbackAndCallNow_OnRerverseQueryUpdated( NEWNESS_QUERIES.CharacterButton[character], OnNewnessQueryChangedUpdateButton, button )
+}
+
+void function CharacterClassButton_Init( var button, ItemFlavor character, bool addNewness = true)
+{
+	Hud_SetVisible( button, true )
+	file.buttonToCharacter[button] <- character
+
+	bool isSelected = LoadoutSlot_GetItemFlavor( LocalClientEHI(), Loadout_CharacterClass() ) == character
+
+	Hud_SetVisible( button, true )
+	Hud_SetLocked( button, !IsItemFlavorUnlockedForLoadoutSlot( LocalClientEHI(), Loadout_CharacterClass(), character ) )
+	Hud_SetSelected( button, isSelected )
+
+	                              
+	var buttonRui = Hud_GetRui( button )
+	RuiSetImage( buttonRui, "portraitImage", CharacterClass_GetGalleryPortrait( character ) )
+	RuiSetImage( buttonRui, "portraitBackground", CharacterClass_GetGalleryPortraitBackground( character ) )
+	RuiSetString( buttonRui, "portraitName", Localize( ItemFlavor_GetLongName( character ) ) )
+	RuiSetImage( buttonRui, "roleImage", CharacterClass_GetCharacterRoleImage( character ) )
+
+	if( addNewness )
+		Newness_AddCallbackAndCallNow_OnRerverseQueryUpdated( NEWNESS_QUERIES.CharacterButton[character], OnNewnessQueryChangedUpdateButton, button )
 }
 
 
@@ -252,7 +518,7 @@ void function CharactersPanel_OnHide( var panel )
 
 void function CharactersPanel_OnFocusChanged( var panel, var oldFocus, var newFocus )
 {
-	if ( !IsValid( panel ) ) // uiscript_reset
+	if ( !IsValid( panel ) )                  
 		return
 
 	if ( !newFocus || GetParentMenu( panel ) != GetActiveMenu() )
@@ -261,14 +527,32 @@ void function CharactersPanel_OnFocusChanged( var panel, var oldFocus, var newFo
 	UpdateFooterOptions()
 
 	ItemFlavor character
-	if ( file.buttons.contains( newFocus ) )
+	if ( file.buttons.contains( newFocus )
+			||file.roleButtons_Assault.contains( GetFocus() )
+			|| file.roleButtons_Recon.contains( GetFocus() )
+			|| file.roleButtons_Defense.contains( GetFocus() )
+			|| file.roleButtons_Support.contains( GetFocus() ) )
+	{
 		character = file.buttonToCharacter[newFocus]
+		if (newFocus != null)
+		{	
+			Hud_ScaleOverTime( newFocus, 1.15, 1.15,0.1, INTERPOLATOR_DEACCEL )
+		}
+	}
 	else
 		character = LoadoutSlot_GetItemFlavor( LocalClientEHI(), Loadout_CharacterClass() )
 
-
-	//Hud_SetVisible( file.actionButton, IsCharacterButtonFocused() )
-	Hud_SetVisible( file.actionLabel, IsCharacterButtonFocused() )
+	if ( file.buttons.contains( oldFocus )
+			||file.roleButtons_Assault.contains( oldFocus )
+			|| file.roleButtons_Recon.contains( oldFocus )
+			|| file.roleButtons_Defense.contains( oldFocus )
+			|| file.roleButtons_Support.contains( oldFocus ) )
+	{
+		if (oldFocus != null)
+		{
+			Hud_ReturnToBaseScaleOverTime( oldFocus, 0.1, INTERPOLATOR_DEACCEL )
+		}
+	}
 
 	printt( ItemFlavor_GetHumanReadableRef( character ) )
 	PresentCharacter( character )
